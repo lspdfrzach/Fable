@@ -10,7 +10,7 @@ This repository runs the Python Discord bot. Its bundled FastAPI server is for i
    - `PRODUCTION_BOT_TOKEN` = the token for your own Fable Discord application
    - `MONGO_URL` = your MongoDB connection string
    - `DB_NAME=fable` if you want a separate database from an ERM installation
-   - `MC_API_URL` = your Maple County API base URL if that integration is in use; the current startup code reads this variable even when the integration is unused, so provide a valid URL until the integration is made optional
+   - `MC_API_URL` = your Maple County API base URL if that integration is in use
    - `MC_API_KEY` if the Maple County integration is in use
 3. In the Discord Developer Portal, enable the Server Members and Message Content intents used by this bot. Its existing `setup_hook` rejects a publicly configured install link; follow the repository's `SELF_HOSTING.md` for the app installation settings.
 4. Deploy the service and read its logs. The bot should connect to Discord and MongoDB. Do not enter tokens or the MongoDB URL in GitHub files, commits, issues, or pull requests.
