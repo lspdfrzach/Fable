@@ -227,7 +227,7 @@ class Bot(commands.AutoShardedBot):
                 api_key=config("PRC_API_KEY", default=None),
             )
             self.mc_api = MCApiClient(
-                self, base_url=config("MC_API_URL"), api_key=config("MC_API_KEY")
+                self, base_url=config("MC_API_URL", default=""), api_key=config("MC_API_KEY", default="")
             )
 
             Extensions = [m.name for m in iter_modules(["cogs"], prefix="cogs.")]
