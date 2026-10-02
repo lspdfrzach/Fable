@@ -12,11 +12,11 @@ class OnMemberRemove(commands.Cog):
     @commands.Cog.listener("on_member_remove")
     async def on_member_remove(self, member: discord.Member):
         try:
-            url_var = config("BASE_API_URL")
+            url_var = config("BASE_API_URL", default="")
             if url_var in ["", None]:
                 return
 
-            panel_url_var = config("PANEL_API_URL")
+            panel_url_var = config("PANEL_API_URL", default="")
             if panel_url_var in ["", None]:
                 return
 

@@ -124,6 +124,8 @@ class Bot(commands.AutoShardedBot):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setup_status: bool = False
+        self.is_synced = False
+        self.external_http_sessions = []
         self._member_cache = {}
         self._guild_cache = {}
         self._cache_timeout = 300
@@ -134,16 +136,18 @@ class Bot(commands.AutoShardedBot):
                 await session.close()
         await super().close()
 
-    async def is_owner(self, user: discord.User):
-        # Only developers of the bot on the team should have
-        # full access to Jishaku commands. Hard-coded
-        # IDs are a security vulnerability.
-
-        # Else fall back to the original
-        if user.id == 1394817794427846737:
-            return True
-
-        return await super().is_owner(user)
+    async def sync_application_commands(self):
+        if self.is_synced or not config("SYNC_COMMANDS", default=True, cast=bool):
+            return
+        guild_id = config("COMMAND_GUILD_ID", default=0, cast=int)
+        if guild_id:
+            guild = discord.Object(id=guild_id)
+            self.tree.copy_global_to(guild=guild)
+            synced = await self.tree.sync(guild=guild)
+        else:
+            synced = await self.tree.sync()
+        self.is_synced = True
+        logging.info("Registered %s application commands", len(synced))
         
 
     async def setup_hook(self) -> None:
@@ -163,7 +167,8 @@ class Bot(commands.AutoShardedBot):
                     self.user.name
                 )
             )
-            self.mongo = AsyncMongoClient(str(mongo_url))
+            self.mongo = AsyncMongoClient(str(mongo_url), serverSelectionTimeoutMS=10000)
+            await self.mongo.admin.command("ping")
 
             # The checking for this is defined just before the run method - approx line 649
             self.db = self.mongo[dbname]
@@ -227,13 +232,13 @@ class Bot(commands.AutoShardedBot):
                 api_key=config("PRC_API_KEY", default=None),
             )
             self.mc_api = MCApiClient(
-                self, base_url=config("MC_API_URL"), api_key=config("MC_API_KEY")
+                self, base_url=config("MC_API_URL", default=""), api_key=config("MC_API_KEY", default="")
             )
 
             Extensions = [m.name for m in iter_modules(["cogs"], prefix="cogs.")]
             Events = [m.name for m in iter_modules(["events"], prefix="events.")]
             BETA_EXT = ["cogs.StaffConduct"]
-            EXTERNAL_EXT = ["utils.api"]
+            EXTERNAL_EXT = ["utils.api"] if config("INTERNAL_API_ENABLED", default=False, cast=bool) else []
             [Extensions.append(i) for i in EXTERNAL_EXT]
             self.reminders_enabled, self.actions_enabled = True, True
             if config("ACTIONS_ENABLED", default="TRUE").upper() != "TRUE":
@@ -251,6 +256,7 @@ class Bot(commands.AutoShardedBot):
 
             await self.emoji_controller.prefetch_emojis()
 
+            failed_extensions = []
             for extension in Extensions:
                 try:
                     if extension not in BETA_EXT:
@@ -260,6 +266,7 @@ class Bot(commands.AutoShardedBot):
                         await self.load_extension(extension)
                         logging.info(f"Loaded {extension}")
                 except Exception as e:
+                    failed_extensions.append(extension)
                     logging.critical(f"Failed to load extension {extension}.", exc_info=e)
 
             for extension in Events:
@@ -267,7 +274,11 @@ class Bot(commands.AutoShardedBot):
                     await self.load_extension(extension)
                     logging.info(f"Loaded {extension}")
                 except Exception as e:
+                    failed_extensions.append(extension)
                     logging.critical(f"Failed to load extension {extension}.", exc_info=e)
+
+            if failed_extensions:
+                raise RuntimeError(f"Failed to load extensions: {', '.join(failed_extensions)}")
 
             bot.error_list = []
             logging.info("Connected to MongoDB!")
@@ -276,13 +287,7 @@ class Bot(commands.AutoShardedBot):
             await bot.load_extension("utils.hot_reload")
             # await bot.load_extension('utils.server')
 
-            if not bot.is_synced:  # check if slash commands have been synced
-                bot.tree.copy_global_to(guild=discord.Object(id=987798554972143728))
-            if environment == "DEVELOPMENT":
-                pass
-                # await bot.tree.sync(guild=discord.Object(id=987798554972143728))
-
-            bot.is_synced = True
+            await self.sync_application_commands()
             self.saved_latencies = {
                 "shards": [],
                 "rest": [],

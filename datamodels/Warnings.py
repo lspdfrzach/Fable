@@ -195,8 +195,8 @@ class Warnings(Document):
         )
 
         try:
-            url_var = config("BASE_API_URL")
-            panel_url_var = config("PANEL_API_URL")
+            url_var = config("BASE_API_URL", default="")
+            panel_url_var = config("PANEL_API_URL", default="")
             if url_var not in ["", None]:
                 async with aiohttp.ClientSession() as session:
                     async with session.get(
@@ -407,8 +407,8 @@ class Warnings(Document):
         selected_item = await self.db.find_one({"Snowflake": identifier})
         if selected_item["Guild"] == (guild_id or selected_item["Guild"]):
             try:
-                url_var = config("BASE_API_URL")
-                panel_url_var = config("PANEL_API_URL")
+                url_var = config("BASE_API_URL", default="")
+                panel_url_var = config("PANEL_API_URL", default="")
                 if url_var not in ["", None]:
                     async with aiohttp.ClientSession() as session:
                         async with session.get(
