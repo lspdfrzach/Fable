@@ -4,6 +4,9 @@
 .env.*
 !.env.template
 .venv
+venv
+.idea
+.vscode
 __pycache__
 .pytest_cache
 *.pyc

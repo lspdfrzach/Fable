@@ -27,11 +27,11 @@ class OnMemberUpdate(commands.Cog):
 
             if after_permission != old_permission:
                 try:
-                    url_var = config("BASE_API_URL")
+                    url_var = config("BASE_API_URL", default="")
                     if url_var in ["", None]:
                         return
 
-                    panel_url_var = config("PANEL_API_URL")
+                    panel_url_var = config("PANEL_API_URL", default="")
                     if panel_url_var in ["", None]:
                         return
 
